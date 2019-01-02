@@ -1,0 +1,4 @@
+Alarm 0
+Lautstaerke 64
+Playlist hr3
+Weckzeit 0830
