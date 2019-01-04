@@ -323,7 +323,7 @@ ROTARY_DOWN=13  # GPIO 27 = Pin 13
 
 
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(BUTTON_R, GPIO.IN) # right button
+GPIO.setup(BUTTON_R, GPIO.IN, pull_up_down=GPIO.PUD_UP) # right button
 GPIO.setup(BUTTON_L, GPIO.IN, pull_up_down=GPIO.PUD_UP) # left button
 GPIO.setup(SWITCH, GPIO.IN) # switch
 
