@@ -177,13 +177,17 @@ class Wecker:
 
 
     def menuShow(self):
+        # if we changed the alarm time and didn't save it, we need to reset it here
+        self.alarmtime = self.prop.getProperty("Weckzeit")
+        logging.info(self.stateMachine.request.state)
+        logging.info(self.musicIsPlaying())
         if (self.stateMachine.request.state is State.Uhrzeit or self.stateMachine.request.state is State.Menu1) and self.musicIsPlaying():
             logging.info("Stoppe Musik")
             self.musicStop()
             self.stateMachine.apply(ActionButton.CANCEL)
 
             logging.info("Musik pausiert für 7 Minuten")
-            p1 = subprocess.Popen(["/bin/echo", "mpc", "play"], stdout=subprocess.PIPE)
+            p1 = subprocess.Popen(["/bin/echo", "/usr/bin/mpc", "play"], stdout=subprocess.PIPE)
             subprocess.Popen(["at", "now", "+", "7min"], stdin=p1.stdout, stdout=subprocess.PIPE).communicate()
         else:
             logging.info("Zeige Menü")
@@ -193,24 +197,6 @@ class Wecker:
                 logging.info("Alarmzeit:" +str(self.alarmtime))
                 self.segment.print_number_str(self.alarmtime)
                 self.segment.set_decimal(0, True)
-                self.segment.write_display()
-
-            elif self.stateMachine.request.state is State.Menu2:
-                logging.info("Menu 2")
-                self.segment.clear()
-                self.segment.set_decimal(1, True)
-                self.segment.write_display()
-
-            elif self.stateMachine.request.state is State.Menu3:
-                logging.info("Menu 3")
-                self.segment.clear()
-                self.segment.set_decimal(2, True)
-                self.segment.write_display()
-
-            elif self.stateMachine.request.state is State.Menu4:
-                logging.info( "Menu4")
-                self.segment.clear()
-                self.segment.set_decimal(3, True)
                 self.segment.write_display()
 
             elif self.stateMachine.request.state is State.Playlist:
@@ -312,7 +298,7 @@ class Wecker:
             cron.remove( job )
         cron.write_to_user( user='pi' )        
 
-logging.basicConfig(filename='wecker.log',level=logging.INFO)
+logging.basicConfig(filename='wecker.log',level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
 
 BUTTON_L=33     # GPIO 13 = Pin 33
@@ -325,7 +311,9 @@ ROTARY_DOWN=13  # GPIO 27 = Pin 13
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(BUTTON_R, GPIO.IN, pull_up_down=GPIO.PUD_UP) # right button
 GPIO.setup(BUTTON_L, GPIO.IN, pull_up_down=GPIO.PUD_UP) # left button
-GPIO.setup(SWITCH, GPIO.IN) # switch
+GPIO.setup(SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP) # switch
+GPIO.setup(ROTARY_UP, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(ROTARY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 segment = SevenSegment.SevenSegment()
 wecker = Wecker(segment)
@@ -346,36 +334,10 @@ DEFAULT = [ Transition(State.Uhrzeit,     ActionButton.BUTTON_RIGHT,  State.Menu
             Transition(State.Playlist,    ActionButton.ROTATE_DOWN,   State.Playlist, wecker.musicPrev), 
             Transition(State.Menu1,       ActionButton.BUTTON_RIGHT,  State.Edit_Menu1),
             Transition(State.Menu1,       ActionButton.BUTTON_LEFT,   State.Uhrzeit),
-            #Transition(State.Menu1,       ActionButton.ROTATE_UP,     State.Menu2, wecker.menuShow),
-            #Transition(State.Menu1,       ActionButton.ROTATE_DOWN,   State.Menu4, wecker.menuShow),
-            #Transition(State.Menu2,       ActionButton.BUTTON_RIGHT,  State.Edit_Menu2),
-            #Transition(State.Menu2,       ActionButton.BUTTON_LEFT,   State.Uhrzeit),
-            #Transition(State.Menu2,       ActionButton.ROTATE_UP,     State.Menu3, wecker.menuShow),
-            #Transition(State.Menu2,       ActionButton.ROTATE_DOWN,   State.Menu1, wecker.menuShow),
-            #Transition(State.Menu3,       ActionButton.BUTTON_RIGHT,  State.Edit_Menu4),
-            #Transition(State.Menu3,       ActionButton.BUTTON_LEFT,   State.Uhrzeit),
-            #Transition(State.Menu3,       ActionButton.ROTATE_UP,     State.Menu4, wecker.menuShow),
-            #Transition(State.Menu3,       ActionButton.ROTATE_DOWN,   State.Menu2, wecker.menuShow),
-            #Transition(State.Menu4,       ActionButton.BUTTON_RIGHT,  State.Edit_Menu4),
-            #Transition(State.Menu4,       ActionButton.BUTTON_LEFT,   State.Uhrzeit),
-            #Transition(State.Menu4,       ActionButton.ROTATE_UP,     State.Menu1, wecker.menuShow),
-            #Transition(State.Menu4,       ActionButton.ROTATE_DOWN,   State.Menu3, wecker.menuShow),
             Transition(State.Edit_Menu1,  ActionButton.BUTTON_RIGHT,  State.Menu1, wecker.menuSave),
             Transition(State.Edit_Menu1,  ActionButton.BUTTON_LEFT,   State.Menu1, wecker.menuShow),
             Transition(State.Edit_Menu1,  ActionButton.ROTATE_UP,     State.Edit_Menu1, wecker.menuIncrement),
-            Transition(State.Edit_Menu1,  ActionButton.ROTATE_DOWN,   State.Edit_Menu1, wecker.menuDecrement),
-            Transition(State.Edit_Menu2,  ActionButton.BUTTON_RIGHT,  State.Menu2, wecker.menuShow),
-            Transition(State.Edit_Menu2,  ActionButton.BUTTON_LEFT,   State.Menu2, wecker.menuShow),
-            Transition(State.Edit_Menu2,  ActionButton.ROTATE_UP,     State.Edit_Menu2, wecker.menuIncrement),
-            Transition(State.Edit_Menu2,  ActionButton.ROTATE_DOWN,   State.Edit_Menu2, wecker.menuDecrement),
-            Transition(State.Edit_Menu3,  ActionButton.BUTTON_RIGHT,  State.Menu3, wecker.menuShow),
-            Transition(State.Edit_Menu3,  ActionButton.BUTTON_LEFT,   State.Menu3, wecker.menuShow),
-            Transition(State.Edit_Menu3,  ActionButton.ROTATE_UP,     State.Edit_Menu3, wecker.menuIncrement),
-            Transition(State.Edit_Menu3,  ActionButton.ROTATE_DOWN,   State.Edit_Menu3, wecker.menuDecrement),
-            Transition(State.Edit_Menu4,  ActionButton.BUTTON_RIGHT,  State.Menu4, wecker.menuShow),
-            Transition(State.Edit_Menu4,  ActionButton.BUTTON_LEFT,   State.Menu4, wecker.menuShow),
-            Transition(State.Edit_Menu4,  ActionButton.ROTATE_UP,     State.Edit_Menu4, wecker.menuIncrement),
-            Transition(State.Edit_Menu4,  ActionButton.ROTATE_DOWN,   State.Edit_Menu4, wecker.menuDecrement)]
+            Transition(State.Edit_Menu1,  ActionButton.ROTATE_DOWN,   State.Edit_Menu1, wecker.menuDecrement)]
 
 request = Request(State.Uhrzeit)
 sm = StateMachine(DEFAULT, request)
